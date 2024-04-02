@@ -31,5 +31,8 @@ cd bin
 ./coppertag "test_image.jpg"
 ```
 
+## Attention
+The default generator and detector are based on CopperTag-14
+
 ## Dataset
 A dataset that containing simulations, physical environments, usual images and occlusion images can be downloaded from [google drive](https://drive.google.com/drive/folders/1al6iWGvUWLP2QdQiYIq_z2CAR__72UVJ?usp=drive_link)
