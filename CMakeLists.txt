@@ -40,5 +40,5 @@ add_library(copperTagLib ${PROJECT_SOURCES})
 target_link_libraries(copperTagLib ${OpenCV_LIBS} yaml-cpp)
 
 # test program
-add_executable(coppertag example/main.cpp)
-target_link_libraries(coppertag copperTagLib)
+add_executable(coppertag_detector example/detector.cpp)
+target_link_libraries(coppertag_detector copperTagLib)
