@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
   }
 
   /************ load the detector parameters ************/
-  PARAMS->load_from_yaml("../params/detectorParams.yaml");
+  PARAMS->load_from_yaml("params/detectorParams.yaml");
 
   /************ read the image from local path ************/
   cv::Mat imgInput = imread(argv[1], cv::IMREAD_GRAYSCALE);
