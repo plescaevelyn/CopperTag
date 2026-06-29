@@ -121,28 +121,23 @@ namespace CopperTag {
         for(int j = 0; j < FIELD_DESCRIPTOR; j++) {
           bool bit = allBits.at(rotate_idx(reMapIdx_.at((sampleIdx)), dir));
           if (!mask_.at(reMapIdx_.at((sampleIdx)))) bit = !bit;
-          symbol = symbol << 1 |  bit; 
+          symbol = symbol << 1 |  bit;
           sampleIdx++;
         }
-        // std::cout << int(symbol) << "-";
         dataString.push_back(symbol);
       }
 
-      // std::cout << std::endl;
       // put in fec
       for(int i = 0; i < FEC_LENGTH; i++) {
         char symbol = 0;
         for(int j = 0; j < FIELD_DESCRIPTOR; j++) {
           bool bit = allBits.at(rotate_idx(reMapIdx_.at((sampleIdx)), dir));
           if (!mask_.at(reMapIdx_.at((sampleIdx)))) bit = !bit;
-          // std::cout << bit;
-          symbol = symbol << 1 |  bit; 
+          symbol = symbol << 1 |  bit;
           sampleIdx++;
         }
-        // std::cout << int(symbol) << "-";
         fecString.push_back(symbol);
       }
-      // std::cout << std::endl;
 
       /* Instantiate RS Block For Codec */
       schifra::reed_solomon::block<CODE_LENGTH,FEC_LENGTH> decode_block(dataString, fecString);

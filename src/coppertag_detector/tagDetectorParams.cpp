@@ -38,11 +38,13 @@ namespace CopperTag {
             CORNER_LINE_ANGLE_          = config["detector_params"]["corner_line_angle"].as<double>();
             CORNER_REFINE_SCAN_DIST_    = config["detector_params"]["corner_refine_scan_dist"].as<int>();
             CORNER_REFINE_THRESH_       = config["detector_params"]["corner_refine_thresh"].as<double>();
+            return true;
         } catch (const YAML::Exception& e) {
             std::cerr << "Error reading YAML file: " << e.what() << std::endl;
+            return false;
         } catch (...) {
             std::cerr << "Unknown error occurred while reading YAML file." << std::endl;
+            return false;
         }
-        return true;
     }
 } // namespace CopperTag

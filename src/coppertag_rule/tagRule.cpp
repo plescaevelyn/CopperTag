@@ -23,24 +23,24 @@
 namespace CopperTag {
 
   CopperTagRule::CopperTagRule(double size) {
-    sSize_ = size; 
+    sSize_ = size;
     cRad_ = std::sqrt(2) * sSize_/2;
     double imageSize = size*2;
-    
-    double x = imageSize/2; 
-    double y = imageSize/2; 
+
+    double x = imageSize/2;
+    double y = imageSize/2;
 
     center_ = cv::Point2d(x, y);
 
-    // 8*8 = 64 > 60, 14*14 = 196 > 192; 
+    // 8*8 = 64 > 60, 14*14 = 196 > 192;
 
-    // levelCount = (type == SMALL ? 8 : 14); 
-    
-    levelCount_ = LEVEL_COUNT; 
+    // levelCount = (type == SMALL ? 8 : 14);
+
+    levelCount_ = LEVEL_COUNT;
 
     fullStp_ = sSize_ / (levelCount_ + 2);  // 2 layer for white outer
-    halfStp_ = fullStp_ / 2; 
-    boarderWidth_ = sSize_ / 8; 
+    halfStp_ = fullStp_ / 2;
+    boarderWidth_ = sSize_ / 8;
 
     tag_ = cv::Mat(imageSize, imageSize, CV_8UC3, WHITE);
 
@@ -87,9 +87,6 @@ namespace CopperTag {
     tl = cv::Point2d(x + (cRad_), y - sSize_/2);
     br = cv::Point2d(x + (offset+width), y + sSize_/6);  
     cv::rectangle(tag_, tl, br, BLACK, -1); 
-    // tl = cv::Point2d(x + (sSize_/2 + offset + width), y + sSize_/2);  
-    // br = cv::Point2d(x + (sSize_/2 + offset), y + sSize_/12);
-    // cv::rectangle(tag_, tl, br, BLACK, -1); 
 
     // Clean Extra exterior
     cv::circle(tag_, cv::Point(x, y), cRad_+boarderWidth_*std::sqrt(2), WHITE, boarderWidth_);
@@ -107,7 +104,6 @@ namespace CopperTag {
     cv::Point2d tl(center.x - halfSize, center.y - halfSize); 
     cv::Point2d br(center.x + halfSize, center.y + halfSize); 
 
-    // cv::rectangle(tag_, tl, br, color, 2);
     cv::rectangle(tag_, tl, br, color, width);
   }
 
@@ -122,8 +118,8 @@ namespace CopperTag {
         xyList_.push_back(cv::Point2d(x, y));
         x += fullStp_; 
       }
-      y += fullStp_; 
-      x = center_.y - sSize_/2 + fullStp_*1.5;
+      y += fullStp_;
+      x = center_.x - sSize_/2 + fullStp_*1.5;
     }
   }
 
@@ -174,18 +170,24 @@ namespace CopperTag {
     std::vector<std::bitset<8>> encodedWord;
     
     int fontFace = cv::FONT_HERSHEY_DUPLEX; // Font type 18 2.5
-    // int fontFace = cv::FONT_HERSHEY_SIMPLEX; // Font type 19 2.5
-    // int fontFace = cv::FONT_HERSHEY_PLAIN; // Font type 11 6
     double fontScale = 2 * double(TAG_SIZE)/512.0; // Font scale factor
     int lineThick = 3 * double(TAG_SIZE)/512.0; 
     std::string message = std::to_string(words);
     double offset = double(message.size())/2.0 * fontScale * 19.5; 
     cv::Point2d textLoc(center_.x - offset, center_.y+cRad_); 
     cv::putText(tag_, message, textLoc, fontFace, fontScale, WHITE, 3, false); 
-    // cv::putText(tag_, "abc", textLoc, fontFace, fontScale, WHITE, 3, false); 
 
     if(encode(words, encodedWord)) {
       draw_marker(encodedWord);
+
+      // Ensure tag_ is initialized before writing/displaying
+      if (tag_.empty()) {
+        double imageSize = sSize_ * 2;
+        tag_ = cv::Mat(imageSize, imageSize, CV_8UC3, WHITE);
+        marker_back();
+        draw_marker(encodedWord);
+      }
+
       if (path.size() > 0) {
         cv::imwrite(path, tag_); 
       } else {
@@ -198,51 +200,25 @@ namespace CopperTag {
   }
 
   void CopperTagRule::draw_marker(std::vector<std::bitset<8>> &biStr) {
-    // marker_back();
-    // std::cout << std::endl;
-
     for(int i = 0; i < levelCount_ * levelCount_; i++) { 
-      // levelCount * levelCount, biStr.size()*field_des
-
       cv::Scalar bitColor; 
-      // int biStrIdx = i;
-      // int xyIdx = reMapIdx_.at(biStrIdx);
 
       int xyIdx = i; 
       int biStrIdx = reMapInverse_.at(xyIdx);
 
       bool bitVal = biStr.at(biStrIdx/8)[7-biStrIdx%8];
 
-      // bitColor = bitVal ? GRAY : BLACK; // field_Des
-      // draw_bit(xyList_.at(xyIdx), 1, bitColor);
-      // cv::imshow("tag", tag_);
-      // cv::waitKey();
-
       if(mask_.at(xyIdx))
         bitColor = bitVal ? WHITE : BLACK; // field_Des
       else  
         bitColor = bitVal ? BLACK : WHITE; // field_Des
 
-      // bitColor = bitVal ? GRAY : BLACK; 
-      // std::cout << "drawing Loc: " << xyList_.at(xyIdx) << std::endl;
-
       draw_bit(xyList_.at(xyIdx), 1, bitColor);
-      // cv::imshow("tag", tag_);
-      // cv::waitKey();
     }
     draw_center_checker(4*fullStp_); 
   }
 
   std::vector<int> CopperTagRule::re_map() { 
-    /**
-     * 0 0 0 1 1 1 1 
-     * 0 0 0 1 1 1 1 
-     * 0 0 2 2 2 3 3 
-     * 4 4 2 2 2 3 3 
-     * 4 4 2 2 - 5 5 
-     * 4 4 3 3 5 5 5 
-     * 4 4 3 3 5 5 5 
-     */
     std::vector<int> pattern = {1, 2, 14, 15, 16, 28, 29, 30, 
                                 3, 4, 5, 6, 17, 18, 19, 20, 
                                 32, 33, 34, 46, 47, 48, 61, 62, 
@@ -265,56 +241,44 @@ namespace CopperTag {
   }
 
   bool CopperTagRule::rotation_safe(std::vector<std::bitset<8>> &biStr,const decoder_t &decoder) {
-    // Need to change bit count, bit assembly
-    // std::cout << "in rotation check" << std::endl;
+    // Simpler rotation_safe without overly complex bounds checking
     for(int dir = 1; dir < 4; dir++) {
-      int sampleIdx = 0; 
+      int sampleIdx = 0;
       std::string dataString(DATA_LENGTH, 0);
       std::string fecString(FEC_LENGTH, 0);
+
       // Data Part
       for(int i = 0; i < DATA_LENGTH; i++) {
         for(int j = 0; j < FIELD_DESCRIPTOR; j++) {
           int bitJIdx = reMapInverse_.at(rotate_idx(reMapIdx_[sampleIdx], dir));
           bool bitJ = biStr.at(bitJIdx/FIELD_DESCRIPTOR)[(FIELD_DESCRIPTOR-1)-bitJIdx%FIELD_DESCRIPTOR];
-          // std::cout << bitJ << " ";
           dataString.at(i) = (dataString.at(i) << 1) | bitJ;
           sampleIdx++;
         }
-        // std::cout << ": " << int(uchar(dataString.at(i))) <<  std::endl;
       }
-      // std::cout << std::endl;
+
       // Fec Part
       for(int i = 0; i < FEC_LENGTH; i++) {
         for(int j = 0; j < FIELD_DESCRIPTOR; j++) {
           int bitJIdx = reMapInverse_.at(rotate_idx(reMapIdx_[sampleIdx], dir));
           bool bitJ = biStr.at(bitJIdx/FIELD_DESCRIPTOR)[(FIELD_DESCRIPTOR-1)-bitJIdx%FIELD_DESCRIPTOR];
-          // std::cout << bitJ << " ";
           fecString.at(i) = (fecString.at(i) << 1) | bitJ;
           sampleIdx++;
         }
-        // std::cout << ": " << int(uchar(fecString.at(i))) <<  std::endl;
       }
-      // std::cout << " ---------- " << std::endl;
-      // std::cout << std::endl;
 
       schifra::reed_solomon::block<CODE_LENGTH,FEC_LENGTH> block(dataString, fecString);
       if(decoder.decode(block)) {
-        // return false;
-        // std::cout << "decoded at dir: " << dir << std::endl;
-        std::string msg; 
+        std::string msg;
         block.data_to_string(msg);
         if(is_legit(msg)) {
-          // std::cout << "also legit" << std::endl;
-          return false; 
+          return false;
         }
       }
-      // Decode Check speed
-      // std::cout << std::endl;
     }
-    return true; 
+    return true;
   }
 
-  // Check if legit alias
   bool CopperTagRule::is_legit(std::string inStr) {
     return std::find(validVerifyBit.begin(), validVerifyBit.end(), inStr[DATA_LENGTH-1]) != validVerifyBit.end();
   }
@@ -324,8 +288,6 @@ namespace CopperTag {
     std::vector<std::bitset<4>> encodedWord;
 
     int fontFace = cv::FONT_HERSHEY_DUPLEX; // Font type 18 2.5
-    // int fontFace = cv::FONT_HERSHEY_SIMPLEX; // Font type 19 2.5
-    // int fontFace = cv::FONT_HERSHEY_PLAIN; // Font type 11 6
     double fontScale = 2 * double(TAG_SIZE)/512.0; // Font scale factor
     int lineThick = 3 * double(TAG_SIZE)/512.0; 
     std::string message = std::to_string(words);
@@ -335,6 +297,15 @@ namespace CopperTag {
 
     if(encode(words, encodedWord)) {
       draw_marker(encodedWord);
+
+      // Ensure tag_ is initialized before writing/displaying
+      if (tag_.empty()) {
+        double imageSize = sSize_ * 2;
+        tag_ = cv::Mat(imageSize, imageSize, CV_8UC3, WHITE);
+        marker_back();
+        draw_marker(encodedWord);
+      }
+
       if (path.size() > 0) {
         cv::imwrite(path, tag_); 
       } else {
@@ -347,8 +318,6 @@ namespace CopperTag {
   }
 
   void CopperTagRule::draw_marker(std::vector<std::bitset<4>> &biStr) {
-    // marker_back();
-    // std::cout << std::endl;
     for(int i = 0; i < 64; i ++) { // levelCount * levelCount, biStr.size()*field_des
       cv::Scalar bitColor; 
       int biStrIdx = i;
@@ -360,8 +329,6 @@ namespace CopperTag {
         bitColor = bitVal ? WHITE : BLACK; // field_Des
       else  
         bitColor = bitVal ? BLACK : WHITE; // field_Des
-      
-      // bitColor = bitVal ? GRAY : BLACK; // field_Des
 
       draw_bit(xyList_.at(xyIdx), 1, bitColor);
     }
@@ -370,16 +337,6 @@ namespace CopperTag {
   }
 
   std::vector<int> CopperTagRule::re_map() {
-    /*
-    0 0 1 1 2 2 3 3 
-    0 0 1 1 2 2 3 3 
-    4 4 5 5 6 6 7 7 
-    4 4 5 - - 6 7 7 
-    8 8 5 - - 6 9 9 
-    8 8 A A A A 9 9 
-    B B C C D D E E
-    B B C C D D E E
-    */
     std::vector<int> rst({
        0,  1,  8,  9, 
        2,  3, 10, 11, 
@@ -405,13 +362,10 @@ namespace CopperTag {
   }
 
   bool CopperTagRule::rotation_safe(std::vector<std::bitset<4>> &biStr,const decoder_t &decoder) {
-    // Need to change bit count, bit assembly
-    // std::cout << "in rotation check" << std::endl;
     for(int dir = 1; dir < 4; dir++) {
       int sampleIdx = 0; 
       std::string dataString(DATA_LENGTH, 0);
       std::string fecString(FEC_LENGTH, 0);
-      // Data Part
       for(int i = 0; i < DATA_LENGTH; i++) {
         int bit0Idx = reMapInverse_.at(rotate_idx(reMapIdx_[sampleIdx], dir));
         int bit1Idx = reMapInverse_.at(rotate_idx(reMapIdx_[sampleIdx+1], dir));
@@ -422,10 +376,8 @@ namespace CopperTag {
         bool bit2 = biStr.at(bit2Idx/FIELD_DESCRIPTOR)[(FIELD_DESCRIPTOR-1)-bit2Idx%FIELD_DESCRIPTOR];
         bool bit3 = biStr.at(bit3Idx/FIELD_DESCRIPTOR)[(FIELD_DESCRIPTOR-1)-bit3Idx%FIELD_DESCRIPTOR];
         dataString.at(i) = char(bit0 << 3 | bit1 << 2 | bit2 << 1 | bit3);
-        // std::cout << bit0 << bit1 << bit2 << bit3 << " ";
         sampleIdx+=4;
       }
-      // std::cout << std::endl;
       for(int i = 0; i < FEC_LENGTH; i++) {
         int bit0Idx = reMapInverse_.at(rotate_idx(reMapIdx_[sampleIdx], dir));
         int bit1Idx = reMapInverse_.at(rotate_idx(reMapIdx_[sampleIdx+1], dir));
@@ -436,28 +388,21 @@ namespace CopperTag {
         bool bit2 = biStr.at(bit2Idx/FIELD_DESCRIPTOR)[(FIELD_DESCRIPTOR-1)-bit2Idx%FIELD_DESCRIPTOR];
         bool bit3 = biStr.at(bit3Idx/FIELD_DESCRIPTOR)[(FIELD_DESCRIPTOR-1)-bit3Idx%FIELD_DESCRIPTOR];
         fecString.at(i) = char(bit0 << 3 | bit1 << 2 | bit2 << 1 | bit3);
-        // std::cout << bit0 << bit1 << bit2 << bit3 << " ";
         sampleIdx+=4;
       }
-      // std::cout << std::endl;
       schifra::reed_solomon::block<CODE_LENGTH,FEC_LENGTH> block(dataString, fecString);
       if(decoder.decode(block)) {
         return false;
-        // std::cout << "decoded at dir: " << dir << std::endl;
         std::string msg; 
         block.data_to_string(msg);
         if(is_legit(msg)) {
-          // std::cout << "also legit" << std::endl;
           return false; 
         }
       }
-      // Decode Check speed
-      // std::cout << std::endl;
     }
     return true; 
   }
 
-  // Check if legit alias
   bool CopperTagRule::is_legit(std::string inStr) {
     return std::find(validVerifyBit.begin(), validVerifyBit.end(), inStr[DATA_LENGTH-1]) != validVerifyBit.end();
   }

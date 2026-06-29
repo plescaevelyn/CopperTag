@@ -84,16 +84,12 @@ namespace CopperTag {
 
       biStr.clear();
       for(size_t i = 0; i < data_string.size(); i++) {
-        // std::cout << " " << int(uchar(data_string[i]));
         biStr.push_back(data_string[i]);
       }
-      std::cout << std::endl;
 
       for(size_t i = 0; i < fec_string.size(); i++) {
-        // std::cout << " " << int(uchar(fec_string[i]));
         biStr.push_back(fec_string[i]);
       }
-      std::cout << std::endl;
       
       if(biStr.size() != CODE_LENGTH) {
         std::cout << "Error: Encoded biStr.size() != code_length" << std::endl;
@@ -101,17 +97,17 @@ namespace CopperTag {
       }
 
       for(int i = 0; i < 25 - CODE_LENGTH; i++) {
-        biStr.push_back('\x00'); // push empty stuff to fill the not touched area; 
+        biStr.push_back('\x00'); // push empty stuff to fill the not touched area;
       }
 
       if(!rotation_safe(biStr, decoder)) {
-        // std::cout << "aliased failure: " << msg << std::endl;
+        // This verify bit results in rotation ambiguity, try next one
       } else {
-        valid = true; 
+        valid = true;
         break;
       }
     }
-    
+
     if(!valid){
       std::cout << "there are too much or too little verifying bit" << std::endl;
       return false; 

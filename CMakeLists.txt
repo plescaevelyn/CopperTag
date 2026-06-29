@@ -39,6 +39,14 @@ file(GLOB_RECURSE PROJECT_SOURCES "src/*.cpp")
 add_library(copperTagLib ${PROJECT_SOURCES})
 target_link_libraries(copperTagLib ${OpenCV_LIBS} yaml-cpp)
 
+# generator program
+add_executable(coppertag_generator example/generator.cpp)
+target_link_libraries(coppertag_generator PRIVATE copperTagLib ${OpenCV_LIBS})
+target_include_directories(coppertag_generator PRIVATE include)
+set_target_properties(coppertag_generator PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
+)
+
 # test program
 add_executable(coppertag_detector example/detector.cpp)
 target_link_libraries(coppertag_detector copperTagLib)
